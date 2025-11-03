@@ -1,32 +1,30 @@
 @echo off
-setlocal enabledelayedexpansion
-chcp 65001 >nul
-:: Windows hosts 文件路径
-set HOSTS_FILE=%SystemRoot%\System32\drivers\etc\hosts
+REM add_hosts.bat - 直接将指定条目添加到 Windows hosts，不做去重检查
 
-:: 要添加的记录
-set ENTRIES=(
-"10.220.150.44 www.c534.com"
-"10.220.150.44 c534.com"
-"10.220.150.44 gitlab.c534.com"
+:: 检查管理员权限
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Please run this script as Administrator!
+    pause
+    exit /b
 )
 
-:: 遍历每条记录
-for %%L in ( "10.220.150.44 www.c534.com" "10.220.150.44 c534.com" "10.220.150.44 gitlab.c534.com" ) do (
-    for /f "tokens=1,2" %%a in ("%%~L") do (
-        set "IP=%%a"
-        set "DOMAIN=%%b"
+set "HOSTS=%SystemRoot%\System32\drivers\etc\hosts"
 
-        :: 检查域名是否已存在
-        findstr /r /c:"[[:space:]]!DOMAIN!\([[:space:]]\|$\)" "%HOSTS_FILE%" >nul
-        if errorlevel 1 (
-            echo 🔧 添加: !IP! !DOMAIN!
-            echo !IP! !DOMAIN!>> "%HOSTS_FILE%"
-        ) else (
-            echo ✅ 已存在: !DOMAIN!
-        )
-    )
+if not exist "%HOSTS%" (
+    echo Hosts file not found: %HOSTS%
+    pause
+    exit /b 1
 )
 
-echo ✅ 操作完成！
+:: 备份
+copy /y "%HOSTS%" "%HOSTS%.bak" >nul
+echo Backup created: %HOSTS%.bak
+
+:: 追加记录
+>>"%HOSTS%" echo 10.220.150.44 www.c534.com
+>>"%HOSTS%" echo 10.220.150.44 c534.com
+>>"%HOSTS%" echo 10.220.150.44 gitlab.c534.com
+
+echo Records added successfully!
 pause
